@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Flasky{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>
+        {% if name %}Olá, {{ name }}!{% else %}Hello, Stranger!{% endif %}
+    </h1>
+    {% if not known %}
+        <p>Prazer em conhecê-lo!</p>
+    {% else %}
+        <p>Feliz em vê-lo novamente!</p>
+    {% endif %}
+</div>
+
+{{ wtf.quick_form(form) }}
+
+{% if users %}
+    <h3>Relação de usuários cadastrados</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nome do usuário</th>
+                <th>Função</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.username }}</td>
+                <td>{{ user.role.name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}
