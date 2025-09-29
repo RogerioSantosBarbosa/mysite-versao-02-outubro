@@ -3,11 +3,10 @@ from flask import Flask, render_template, session, redirect, url_for
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField
+from wtforms import StringField, SubmitField
+from wtforms_sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired
 from flask_sqlalchemy import SQLAlchemy
-# Novo import para o campo de seleção baseado em query
-from wtforms_sqlalchemy.fields import QuerySelectField
 from flask_migrate import Migrate
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -30,6 +29,17 @@ class Role(db.Model):
     name = db.Column(db.String(64), unique=True)
     users = db.relationship('User', backref='role', lazy='dynamic')
 
+    
+    @staticmethod
+    def insert_roles():
+        roles = ['User', 'Moderator', 'Administrator']
+        for r in roles:
+            role = Role.query.filter_by(name=r).first()
+            if role is None:
+                role = Role(name=r)
+                db.session.add(role)
+        db.session.commit()
+
     def __repr__(self):
         return '<Role %r>' % self.name
 
@@ -43,12 +53,13 @@ class User(db.Model):
     def __repr__(self):
         return '<User %r>' % self.username
 
+
 def role_query():
     return Role.query
 
 class NameForm(FlaskForm):
     name = StringField('What is your name?', validators=[DataRequired()])
-    role = QuerySelectField('Role:', query_factory=role_query, get_label='name', allow_blank=False)
+    role = QuerySelectField('Role:', query_factory=role_query, get_label='name', allow_blank=True, blank_text='-- selecione uma função --')
     submit = SubmitField('Submit')
 
 
@@ -82,7 +93,6 @@ def index():
         session['name'] = form.name.data
         return redirect(url_for('index'))
 
- 
     users = User.query.all()
     roles = Role.query.all()
 
@@ -92,6 +102,6 @@ def index():
         name=session.get('name'),
         known=session.get('known', False),
         users=users,
-        roles=roles  
+        roles=roles
     )
 
