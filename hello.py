@@ -3,9 +3,11 @@ from flask import Flask, render_template, session, redirect, url_for
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
+from wtforms import StringField, SubmitField, SelectField
 from wtforms.validators import DataRequired
 from flask_sqlalchemy import SQLAlchemy
+# Novo import para o campo de seleção baseado em query
+from wtforms_sqlalchemy.fields import QuerySelectField
 from flask_migrate import Migrate
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -41,9 +43,12 @@ class User(db.Model):
     def __repr__(self):
         return '<User %r>' % self.username
 
+def role_query():
+    return Role.query
 
 class NameForm(FlaskForm):
     name = StringField('What is your name?', validators=[DataRequired()])
+    role = QuerySelectField('Role:', query_factory=role_query, get_label='name', allow_blank=False)
     submit = SubmitField('Submit')
 
 
@@ -68,12 +73,7 @@ def index():
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.name.data).first()
         if user is None:
-            user_role = Role.query.filter_by(name='User').first()
-            if not user_role:
-                user_role = Role(name='User')
-                db.session.add(user_role)
-                db.session.commit()
-            user = User(username=form.name.data, role=user_role)
+            user = User(username=form.name.data, role=form.role.data)
             db.session.add(user)
             db.session.commit()
             session['known'] = False
@@ -82,12 +82,16 @@ def index():
         session['name'] = form.name.data
         return redirect(url_for('index'))
 
+ 
     users = User.query.all()
+    roles = Role.query.all()
 
     return render_template(
         'index.html',
         form=form,
         name=session.get('name'),
         known=session.get('known', False),
-        users=users
+        users=users,
+        roles=roles  
     )
+
